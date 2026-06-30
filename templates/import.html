@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Importar Clientes — CRM{% endblock %}
+{% block page_title %}Importar Clientes via Excel{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+
+    <!-- Upload form -->
+    <div class="card mb-3">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="fas fa-file-excel text-success"></i> Enviar Planilha de Clientes
+      </div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data" novalidate>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Arquivo Excel (.xlsx ou .xls)</label>
+            <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
+            <div class="form-text">Tamanho máximo: 16 MB</div>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-upload me-1"></i> Importar Clientes
+            </button>
+            <a href="{{ url_for('import_template') }}" class="btn btn-outline-success">
+              <i class="fas fa-download me-1"></i> Baixar Modelo
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Instruções -->
+    <div class="card mb-3">
+      <div class="card-header"><i class="fas fa-info-circle text-info me-2"></i>Como preparar a planilha</div>
+      <div class="card-body">
+        <p class="mb-2 small text-muted">A planilha deve ter uma linha de cabeçalho com os nomes das colunas. Clique em "Baixar Modelo" para obter um arquivo de exemplo.</p>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-0">
+            <thead class="table-light">
+              <tr><th>Coluna</th><th>Nomes aceitos</th><th>Obrigatório</th></tr>
+            </thead>
+            <tbody class="small">
+              <tr>
+                <td class="fw-semibold">Nome</td>
+                <td><code>Nome</code>, <code>name</code>, <code>Cliente</code></td>
+                <td><span class="badge bg-danger">Sim</span></td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">Telefone</td>
+                <td><code>Telefone</code>, <code>Fone</code>, <code>Cel</code>, <code>Celular</code></td>
+                <td><span class="badge bg-secondary">Não</span></td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">WhatsApp</td>
+                <td><code>WhatsApp</code>, <code>Wpp</code>, <code>Zap</code></td>
+                <td><span class="badge bg-secondary">Não</span></td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">Instagram</td>
+                <td><code>Instagram</code>, <code>Insta</code></td>
+                <td><span class="badge bg-secondary">Não</span></td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">Facebook</td>
+                <td><code>Facebook</code>, <code>Fb</code></td>
+                <td><span class="badge bg-secondary">Não</span></td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">Tipo</td>
+                <td><code>Tipo</code>, <code>type</code> — valores: <code>ativo</code> / <code>active</code> (demais = potencial)</td>
+                <td><span class="badge bg-secondary">Não</span></td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">Observações</td>
+                <td><code>Observações</code>, <code>Obs</code>, <code>Notas</code>, <code>notes</code></td>
+                <td><span class="badge bg-secondary">Não</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Exemplo visual -->
+    <div class="card">
+      <div class="card-header"><i class="fas fa-table text-secondary me-2"></i>Exemplo de planilha</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-0" style="font-size:.8rem;">
+            <thead class="table-light">
+              <tr><th>Nome</th><th>Telefone</th><th>WhatsApp</th><th>Instagram</th><th>Tipo</th><th>Observações</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Maria Silva</td><td>11987654321</td><td>11987654321</td><td>@maria</td><td>potential</td><td>Interesse no produto X</td></tr>
+              <tr><td>João Santos</td><td>21912345678</td><td>21912345678</td><td></td><td>ativo</td><td>Cliente VIP</td></tr>
+              <tr><td>Ana Lima</td><td>31988776655</td><td></td><td>@ana.lima</td><td></td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

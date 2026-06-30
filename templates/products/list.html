@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}Produtos — CRM{% endblock %}
+{% block page_title %}Produtos{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end gap-2 mb-3">
+  <a href="{{ url_for('import_products') }}" class="btn btn-outline-success btn-sm">
+    <i class="fas fa-file-excel me-1"></i> Importar Excel
+  </a>
+  <a href="{{ url_for('product_new') }}" class="btn btn-primary btn-sm">
+    <i class="fas fa-plus me-1"></i> Novo Produto
+  </a>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    {% if products %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th style="width:100px">SKU</th>
+            <th>Produto</th>
+            <th>Descrição</th>
+            <th class="text-end">Preço Tabela</th>
+            <th class="text-center">Vendas</th>
+            <th class="text-end">Ticket Médio</th>
+            <th class="text-end">Receita Total</th>
+            <th class="text-center" style="width:90px">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in products %}
+          <tr>
+            <td>
+              {% if p.sku %}
+              <span class="badge bg-secondary bg-opacity-15 text-secondary font-monospace">{{ p.sku }}</span>
+              {% else %}
+              <small class="text-muted">—</small>
+              {% endif %}
+            </td>
+            <td class="fw-semibold">{{ p.name }}</td>
+            <td>
+              {% if p.description %}
+              <small class="text-muted" title="{{ p.description }}">
+                {{ p.description[:60] }}{% if p.description|length > 60 %}…{% endif %}
+              </small>
+              {% else %}
+              <small class="text-muted">—</small>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if p.price > 0 %}
+              <span class="text-dark fw-semibold">{{ p.price|currency }}</span>
+              {% else %}
+              <small class="text-muted">—</small>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% if p.sale_count > 0 %}
+              <span class="badge bg-info bg-opacity-10 text-info">{{ p.sale_count }}x</span>
+              {% else %}
+              <small class="text-muted">—</small>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if p.avg_value > 0 %}
+              <span class="text-secondary">{{ p.avg_value|currency }}</span>
+              {% else %}
+              <small class="text-muted">—</small>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if p.revenue > 0 %}
+              <span class="text-success fw-semibold">{{ p.revenue|currency }}</span>
+              {% else %}
+              <small class="text-muted">—</small>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              <div class="d-flex justify-content-center gap-1">
+                <a href="{{ url_for('product_edit', pid=p.id) }}" class="btn btn-sm btn-outline-secondary btn-action" title="Editar">
+                  <i class="fas fa-pen"></i>
+                </a>
+                <button class="btn btn-sm btn-outline-danger btn-action" title="Excluir"
+                        onclick="confirmDelete({{ p.id }}, '{{ p.name|replace("'","\'") }}')">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="fas fa-box fa-3x mb-3 d-block opacity-25"></i>
+      <p class="mb-3">Nenhum produto cadastrado ainda.</p>
+      <div class="d-flex justify-content-center gap-2">
+        <a href="{{ url_for('product_new') }}" class="btn btn-primary btn-sm">
+          <i class="fas fa-plus me-1"></i> Cadastrar Produto
+        </a>
+        <a href="{{ url_for('import_products') }}" class="btn btn-outline-success btn-sm">
+          <i class="fas fa-file-excel me-1"></i> Importar Excel
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Legenda ticket médio -->
+{% if products %}
+<div class="mt-2">
+  <small class="text-muted">
+    <i class="fas fa-info-circle me-1"></i>
+    <strong>Ticket Médio</strong>: média dos valores efetivamente cobrados nas vendas (pode diferir do preço de tabela).
+  </small>
+</div>
+{% endif %}
+
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-danger">Confirmar</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">Excluir <strong id="productNameDelete"></strong>?<br>
+        <small class="text-muted">O histórico de vendas desse produto será mantido.</small>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <form id="deleteForm" method="post">
+          <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmDelete(id, name) {
+  document.getElementById('productNameDelete').textContent = name;
+  document.getElementById('deleteForm').action = '/products/' + id + '/delete';
+  new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %}

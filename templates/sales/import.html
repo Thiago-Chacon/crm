@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% block title %}Importar Vendas — CRM{% endblock %}
+{% block page_title %}Importar Vendas{% endblock %}
+
+{% block content %}
+
+{% if results %}
+<!-- Relatório de importação -->
+<div class="card mb-4">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="fas fa-clipboard-check text-primary"></i> Relatório de Importação
+    <div class="ms-auto d-flex gap-2">
+      <span class="badge bg-success">{{ results.success_count }} importada(s)</span>
+      {% if results.error_count %}
+      <span class="badge bg-danger">{{ results.error_count }} erro(s)</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr>
+            <th style="width:50px">Linha</th>
+            <th>Cliente</th>
+            <th>SKU</th>
+            <th>Resultado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in results.rows %}
+          <tr class="{% if r.status == 'success' %}table-success{% else %}table-danger{% endif %} bg-opacity-25">
+            <td class="text-center text-muted small">{{ r.row }}</td>
+            <td class="fw-semibold small">{{ r.client_ref }}</td>
+            <td class="font-monospace small text-muted">{{ r.sku or '—' }}</td>
+            <td>
+              {% if r.status == 'success' %}
+              <i class="fas fa-check-circle text-success me-1"></i>
+              <span class="text-success small">{{ r.message }}</span>
+              {% else %}
+              <i class="fas fa-times-circle text-danger me-1"></i>
+              <span class="text-danger small">{{ r.message }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <small class="text-muted">
+      Total: {{ results.rows|length }} linha(s) processada(s)
+    </small>
+    <a href="{{ url_for('import_sales') }}" class="btn btn-sm btn-outline-primary">
+      <i class="fas fa-upload me-1"></i> Nova Importação
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+
+    <!-- Formulário de upload -->
+    <div class="card mb-3">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="fas fa-file-invoice-dollar text-primary"></i>
+        Importar cargas de vendas via Excel
+      </div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data" novalidate>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Arquivo Excel (.xlsx)</label>
+            <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
+            <div class="form-text">Tamanho máximo: 16 MB.</div>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-upload me-1"></i> Importar Vendas
+            </button>
+            <a href="{{ url_for('import_sales_template') }}" class="btn btn-outline-success">
+              <i class="fas fa-file-excel me-1"></i> Baixar Modelo
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Instruções -->
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="fas fa-info-circle text-info"></i> Formato do arquivo
+      </div>
+      <div class="card-body">
+        <p class="small text-muted mb-3">
+          O arquivo deve ter as seguintes colunas (os nomes são flexíveis — veja os exemplos aceitos abaixo):
+        </p>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle mb-3">
+            <thead class="table-light">
+              <tr>
+                <th>Coluna</th>
+                <th>Obrigatório</th>
+                <th>Descrição</th>
+                <th>Nomes aceitos</th>
+              </tr>
+            </thead>
+            <tbody class="small">
+              <tr>
+                <td class="fw-semibold">ID do Cliente</td>
+                <td><span class="badge bg-danger">Sim</span></td>
+                <td>Código CLI-XXXX ou nome do cliente</td>
+                <td class="text-muted font-monospace" style="font-size:.78rem;">
+                  ID do Cliente, Cliente, Nome, Nome do Cliente
+                </td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">SKU do Produto</td>
+                <td><span class="badge bg-danger">Sim</span></td>
+                <td>SKU cadastrado no sistema</td>
+                <td class="text-muted font-monospace" style="font-size:.78rem;">
+                  SKU, SKU do Produto, Código, Cod
+                </td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">Quantidade</td>
+                <td><span class="badge bg-secondary">Não</span></td>
+                <td>Qtd vendida (padrão: 1)</td>
+                <td class="text-muted font-monospace" style="font-size:.78rem;">
+                  Quantidade, Qtd, Qtde, Qty
+                </td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">Valor Unitário</td>
+                <td><span class="badge bg-danger">Sim</span></td>
+                <td>Preço cobrado por unidade</td>
+                <td class="text-muted font-monospace" style="font-size:.78rem;">
+                  Valor Unitário, Valor, Preço, Preco
+                </td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">Data da Venda</td>
+                <td><span class="badge bg-danger">Sim</span></td>
+                <td>Formato DD/MM/AAAA ou AAAA-MM-DD</td>
+                <td class="text-muted font-monospace" style="font-size:.78rem;">
+                  Data da Venda, Data, Date
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="alert alert-info py-2 small mb-2">
+          <i class="fas fa-lightbulb me-1"></i>
+          <strong>Dica:</strong> Use o código <span class="code-badge">CLI-XXXX</span> para identificar clientes
+          sem ambiguidade. Para produtos, use exatamente o SKU cadastrado no sistema.
+        </div>
+        <div class="alert alert-warning py-2 small mb-0">
+          <i class="fas fa-exclamation-triangle me-1"></i>
+          <strong>Validação:</strong> Cada linha é validada individualmente. Linhas com erro são ignoradas
+          e as demais são importadas normalmente. O relatório exibe o resultado de cada linha.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

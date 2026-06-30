@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% set is_edit = product is not none %}
+{% block title %}{{ 'Editar' if is_edit else 'Novo' }} Produto — CRM{% endblock %}
+{% block page_title %}{{ 'Editar Produto' if is_edit else 'Novo Produto' }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="fas fa-box text-primary"></i>
+        {{ 'Editar produto' if is_edit else 'Cadastrar novo produto' }}
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate>
+
+          <div class="row g-3 mb-3">
+            <div class="col-sm-4">
+              <label class="form-label fw-semibold">SKU / Código</label>
+              <input type="text" name="sku" class="form-control" placeholder="Ex: PROD-001"
+                     value="{{ product.sku or '' if is_edit else '' }}">
+              <div class="form-text">Identificador único do produto.</div>
+            </div>
+            <div class="col-sm-8">
+              <label class="form-label fw-semibold">Nome do Produto <span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control" required autofocus
+                     placeholder="Ex: Consultoria, Treinamento Online..."
+                     value="{{ product.name if is_edit else '' }}">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Descrição</label>
+            <textarea name="description" class="form-control" rows="3"
+                      placeholder="Detalhes, especificações ou informações adicionais do produto...">{{ product.description or '' if is_edit else '' }}</textarea>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Preço de Tabela (R$)</label>
+            <div class="input-group">
+              <span class="input-group-text">R$</span>
+              <input type="number" name="price" class="form-control" step="0.01" min="0"
+                     value="{{ '%.2f'|format(product.price) if is_edit else '0.00' }}" placeholder="0,00">
+            </div>
+            <div class="form-text">
+              <i class="fas fa-info-circle text-info me-1"></i>
+              Este é o <strong>preço sugerido</strong>. Na hora da venda você pode informar o valor negociado com o cliente.
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save me-1"></i> {{ 'Salvar Alterações' if is_edit else 'Cadastrar Produto' }}
+            </button>
+            <a href="{{ url_for('products_list') }}" class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

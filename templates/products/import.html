@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}Importar Produtos — CRM{% endblock %}
+{% block page_title %}Importar Produtos via Excel{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+
+    <div class="card mb-3">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="fas fa-file-excel text-success"></i> Enviar Planilha de Produtos
+      </div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data" novalidate>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Arquivo Excel (.xlsx ou .xls)</label>
+            <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
+          </div>
+
+          <div class="mb-4">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="update_existing" value="1" id="updateExisting">
+              <label class="form-check-label" for="updateExisting">
+                <strong>Atualizar produtos existentes pelo SKU</strong>
+                <small class="d-block text-muted">Se marcado, produtos com o mesmo SKU terão nome, descrição e preço atualizados em vez de criar duplicata.</small>
+              </label>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-upload me-1"></i> Importar Produtos
+            </button>
+            <a href="{{ url_for('import_products_template') }}" class="btn btn-outline-success">
+              <i class="fas fa-download me-1"></i> Baixar Modelo
+            </a>
+            <a href="{{ url_for('products_list') }}" class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><i class="fas fa-info-circle text-info me-2"></i>Colunas aceitas na planilha</div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-0">
+            <thead class="table-light">
+              <tr><th>Campo</th><th>Nomes aceitos no cabeçalho</th><th>Obrigatório</th></tr>
+            </thead>
+            <tbody class="small">
+              <tr>
+                <td class="fw-semibold">SKU / Código</td>
+                <td><code>SKU</code>, <code>Cod</code>, <code>Código</code>, <code>Ref</code>, <code>Referência</code>, <code>Code</code></td>
+                <td><span class="badge bg-secondary">Não</span></td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">Nome</td>
+                <td><code>Nome</code>, <code>Produto</code>, <code>name</code>, <code>product</code></td>
+                <td><span class="badge bg-danger">Sim</span></td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">Descrição</td>
+                <td><code>Descrição</code>, <code>Description</code>, <code>Desc</code>, <code>Detalhes</code></td>
+                <td><span class="badge bg-secondary">Não</span></td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">Preço de Tabela</td>
+                <td><code>Preço</code>, <code>Valor</code>, <code>Price</code>, <code>Preço de Venda</code>, <code>Venda</code></td>
+                <td><span class="badge bg-secondary">Não</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="alert alert-info mt-3 mb-0 py-2 small">
+          <i class="fas fa-lightbulb me-1"></i>
+          O preço na planilha é o <strong>preço de tabela</strong> (sugerido). Na hora de registrar cada venda você informa o valor real negociado com o cliente.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="fas fa-table text-secondary me-2"></i>Exemplo de planilha</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-0" style="font-size:.8rem;">
+            <thead class="table-light">
+              <tr><th>SKU</th><th>Nome</th><th>Descrição</th><th>Preço</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>PROD-001</td><td>Consultoria Básica</td><td>Sessão de 1h com especialista</td><td>350,00</td></tr>
+              <tr><td>PROD-002</td><td>Treinamento Online</td><td>Curso gravado — acesso vitalício</td><td>197,00</td></tr>
+              <tr><td>PROD-003</td><td>Pacote Premium</td><td>Acesso completo + suporte 30 dias</td><td>997,00</td></tr>
+              <tr><td></td><td>Serviço Avulso</td><td></td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

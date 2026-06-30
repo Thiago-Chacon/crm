@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+{% block title %}Nova Compra — CRM{% endblock %}
+{% block page_title %}Registrar Compra{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="fas fa-shopping-cart text-success"></i> Registrar Nova Compra
+      </div>
+      <div class="card-body">
+        <form method="post" id="purchase-form" novalidate>
+          <input type="hidden" name="items_json" id="items_json_field">
+          <input type="hidden" name="next" value="{{ 'client' if selected_client else '' }}">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Cliente <span class="text-danger">*</span></label>
+            <select name="client_id" class="form-select" required>
+              <option value="">Selecione o cliente...</option>
+              {% for c in clients %}
+              <option value="{{ c.id }}" {% if selected_client|string == c.id|string %}selected{% endif %}>
+                {{ c.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Itens da compra -->
+          <div class="mb-2">
+            <label class="form-label fw-semibold">Produtos / Serviços <span class="text-danger">*</span></label>
+          </div>
+
+          <!-- Cabeçalho das colunas -->
+          <div class="row g-2 mb-1 d-none d-md-flex px-1">
+            <div class="col-md-5"><small class="text-muted fw-semibold">Produto</small></div>
+            <div class="col-md-2"><small class="text-muted fw-semibold">Qtd</small></div>
+            <div class="col-md-2"><small class="text-muted fw-semibold">Valor Unit. (R$)</small></div>
+            <div class="col-md-2"><small class="text-muted fw-semibold">Subtotal</small></div>
+            <div class="col-md-1"></div>
+          </div>
+
+          <div id="items-container"></div>
+
+          <div class="mt-2 mb-3 d-flex align-items-center gap-3">
+            <button type="button" id="add-item-btn" class="btn btn-outline-secondary btn-sm">
+              <i class="fas fa-plus me-1"></i> Adicionar outro produto
+            </button>
+            <div class="ms-auto fw-bold">
+              Total: <span id="total-display" class="text-success fs-5">R$ 0,00</span>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Data da Venda <span class="text-danger">*</span></label>
+              <input type="date" name="purchase_date" class="form-control" value="{{ today }}" required>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Observações</label>
+              <input type="text" name="notes" class="form-control" placeholder="Desconto, condição especial...">
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success btn-lg">
+              <i class="fas fa-check me-1"></i> Registrar Venda
+            </button>
+            <a href="{{ url_for('client_detail', cid=selected_client) if selected_client else url_for('dashboard') }}"
+               class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="row g-2 mt-2">
+      <div class="col-6">
+        <a href="{{ url_for('client_new') }}" class="btn btn-outline-primary btn-sm w-100">
+          <i class="fas fa-user-plus me-1"></i> Novo cliente
+        </a>
+      </div>
+      <div class="col-6">
+        <a href="{{ url_for('product_new') }}" class="btn btn-outline-secondary btn-sm w-100">
+          <i class="fas fa-box me-1"></i> Novo produto
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.item-row { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
+.ac-wrap { position: relative; }
+.ac-dropdown {
+  position: absolute; top: 100%; left: 0; z-index: 1050;
+  background: #fff; border: 1px solid #ced4da; border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.12); min-width: 420px; max-height: 220px;
+  overflow-y: auto; display: none;
+}
+.ac-dropdown table { margin: 0; font-size: .85rem; }
+.ac-dropdown thead th { position: sticky; top: 0; background: #f8f9fa; padding: 4px 8px; white-space: nowrap; }
+.ac-dropdown tbody tr { cursor: pointer; }
+.ac-dropdown tbody tr:hover, .ac-dropdown tbody tr.ac-active { background: #e8f4fd; }
+.ac-dropdown tbody td { padding: 5px 8px; }
+.ac-sku { color: #6c757d; font-family: monospace; white-space: nowrap; }
+.ac-price { text-align: right; white-space: nowrap; color: #198754; }
+</style>
+
+<script>
+// ---------- Autocomplete engine ----------
+function makeAutocomplete(inputEl, onSelect) {
+  const wrap = inputEl.closest('.ac-wrap');
+  const drop = wrap.querySelector('.ac-dropdown');
+  const tbody = drop.querySelector('tbody');
+  let results = [], selIdx = -1, timer = null;
+
+  function fmt(price) {
+    return price > 0 ? 'R$ ' + price.toFixed(2).replace('.', ',') : '—';
+  }
+
+  function render(items) {
+    results = items; selIdx = -1;
+    tbody.innerHTML = '';
+    if (!items.length) { drop.style.display = 'none'; return; }
+    items.forEach((p, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="ac-sku">${p.sku || '—'}</td><td>${p.name}</td><td class="ac-price">${fmt(p.price)}</td>`;
+      tr.addEventListener('mousedown', e => { e.preventDefault(); pick(p); });
+      tr.addEventListener('mouseover', () => highlight(i));
+      tbody.appendChild(tr);
+    });
+    drop.style.display = '';
+  }
+
+  function highlight(i) {
+    tbody.querySelectorAll('tr').forEach(r => r.classList.remove('ac-active'));
+    if (i >= 0) { tbody.querySelectorAll('tr')[i]?.classList.add('ac-active'); selIdx = i; }
+  }
+
+  function pick(p) {
+    inputEl.value = p.name;
+    drop.style.display = 'none';
+    onSelect(p);
+  }
+
+  function search() {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const q = inputEl.value.trim();
+      fetch('/api/products/search?q=' + encodeURIComponent(q))
+        .then(r => r.json()).then(render).catch(() => {});
+    }, 180);
+  }
+
+  inputEl.addEventListener('input', search);
+  inputEl.addEventListener('focus', search);
+  inputEl.addEventListener('blur', () => setTimeout(() => { drop.style.display = 'none'; }, 200));
+  inputEl.addEventListener('keydown', e => {
+    if (drop.style.display === 'none') return;
+    const rows = tbody.querySelectorAll('tr');
+    if (e.key === 'ArrowDown') { e.preventDefault(); highlight(Math.min(selIdx + 1, rows.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); highlight(Math.max(selIdx - 1, 0)); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (selIdx >= 0 && results[selIdx]) pick(results[selIdx]); }
+    else if (e.key === 'Escape') drop.style.display = 'none';
+  });
+}
+
+// ---------- Item rows ----------
+let rowCount = 0;
+
+function fmtBRL(v) {
+  if (!v || isNaN(v)) return 'R$ 0,00';
+  return 'R$ ' + parseFloat(v).toFixed(2).replace('.', ',');
+}
+
+function updateTotals() {
+  let total = 0;
+  document.querySelectorAll('.item-row').forEach(row => {
+    const qty = parseFloat(row.querySelector('.qty-input').value || 0);
+    const unit = parseFloat(row.querySelector('.unit-input').value || 0);
+    const sub = qty * unit;
+    row.querySelector('.sub-display').value = sub > 0 ? sub.toFixed(2) : '';
+    row.querySelector('.sub-label').textContent = sub > 0 ? fmtBRL(sub) : '—';
+    total += sub;
+  });
+  document.getElementById('total-display').textContent = fmtBRL(total);
+}
+
+function addRow() {
+  const idx = rowCount++;
+  const container = document.getElementById('items-container');
+  const div = document.createElement('div');
+  div.className = 'item-row';
+  div.dataset.idx = idx;
+  div.innerHTML = `
+    <div class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <label class="form-label small fw-semibold d-md-none">Produto</label>
+        <div class="ac-wrap">
+          <input type="text" class="form-control form-control-sm product-text"
+                 placeholder="Buscar por SKU ou nome..." autocomplete="off">
+          <div class="ac-dropdown">
+            <table class="table table-sm table-hover mb-0">
+              <thead><tr><th style="width:80px">SKU</th><th>Nome</th><th style="width:90px">Preço</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <input type="hidden" class="product-id-h">
+          <input type="hidden" class="product-name-h">
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-semibold d-md-none">Qtd</label>
+        <input type="number" class="form-control form-control-sm qty-input" min="0.01" step="0.01" value="1" placeholder="1">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-semibold d-md-none">Valor Unit. (R$)</label>
+        <input type="number" class="form-control form-control-sm unit-input" min="0" step="0.01" placeholder="0,00">
+      </div>
+      <div class="col-8 col-md-2">
+        <label class="form-label small fw-semibold d-md-none">Subtotal</label>
+        <div class="input-group input-group-sm">
+          <input type="number" class="form-control sub-display" readonly placeholder="0,00" tabindex="-1">
+        </div>
+        <small class="text-success fw-semibold sub-label d-none d-md-block">—</small>
+      </div>
+      <div class="col-4 col-md-1 d-flex align-items-end justify-content-end">
+        <button type="button" class="btn btn-sm btn-outline-danger remove-btn" title="Remover">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>`;
+
+  container.appendChild(div);
+
+  const textInput = div.querySelector('.product-text');
+  const pidH = div.querySelector('.product-id-h');
+  const pnameH = div.querySelector('.product-name-h');
+  const unitInput = div.querySelector('.unit-input');
+  const qtyInput = div.querySelector('.qty-input');
+
+  makeAutocomplete(textInput, product => {
+    pidH.value = product.id;
+    pnameH.value = product.name;
+    if (product.price > 0) unitInput.value = product.price.toFixed(2);
+    updateTotals();
+    qtyInput.focus();
+  });
+
+  textInput.addEventListener('input', () => {
+    pnameH.value = textInput.value;
+    pidH.value = '';
+  });
+
+  qtyInput.addEventListener('input', updateTotals);
+  unitInput.addEventListener('input', updateTotals);
+
+  div.querySelector('.remove-btn').addEventListener('click', () => {
+    if (document.querySelectorAll('.item-row').length > 1) {
+      div.remove(); updateTotals();
+    } else {
+      textInput.value = ''; pidH.value = ''; pnameH.value = '';
+      unitInput.value = ''; qtyInput.value = 1; updateTotals();
+    }
+  });
+
+  textInput.focus();
+}
+
+document.getElementById('add-item-btn').addEventListener('click', addRow);
+
+document.getElementById('purchase-form').addEventListener('submit', function(e) {
+  const items = [];
+  let valid = true;
+  document.querySelectorAll('.item-row').forEach(row => {
+    const name = row.querySelector('.product-name-h').value.trim()
+                 || row.querySelector('.product-text').value.trim();
+    const pid = row.querySelector('.product-id-h').value || null;
+    const qty = parseFloat(row.querySelector('.qty-input').value || 1);
+    const unit = parseFloat(row.querySelector('.unit-input').value || 0);
+    const sub = parseFloat(row.querySelector('.sub-display').value || 0);
+    if (name) items.push({ product_id: pid ? parseInt(pid) : null, product_name: name, quantity: qty, unit_price: unit, subtotal: sub });
+    else valid = false;
+  });
+  if (!items.length || !valid) {
+    e.preventDefault();
+    alert('Preencha o nome de todos os produtos adicionados.');
+    return;
+  }
+  document.getElementById('items_json_field').value = JSON.stringify(items);
+});
+
+// Inicia com uma linha
+addRow();
+</script>
+{% endblock %}

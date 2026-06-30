@@ -1,0 +1,515 @@
+{% extends 'base.html' %}
+{% block title %}{{ client.name }} — CRM{% endblock %}
+{% block page_title %}Perfil do Cliente{% endblock %}
+
+{% block content %}
+
+<!-- Header do cliente -->
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="row align-items-center">
+      <div class="col">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center"
+               style="width:56px;height:56px;font-size:1.4rem;font-weight:700;flex-shrink:0;">
+            {{ client.name[0]|upper }}
+          </div>
+          <div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <h4 class="mb-0 fw-bold">{{ client.name }}</h4>
+              {% if client.client_code %}
+              <span class="code-badge">{{ client.client_code }}</span>
+              {% endif %}
+            </div>
+            <div class="mt-1 d-flex align-items-center gap-2 flex-wrap">
+              {% if client.type == 'active' %}
+              <span class="badge badge-active">Ativo</span>
+              {% else %}
+              <span class="badge badge-potential">Potencial</span>
+              {% endif %}
+              <small class="text-muted">Cadastrado em {{ client.created_at|fmt_datetime }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-auto d-flex gap-2 flex-wrap">
+        {% set phone = client.whatsapp or client.phone %}
+        {% if phone %}
+        <a href="{{ phone|wa_url }}" target="_blank" class="btn btn-success btn-sm">
+          <i class="fab fa-whatsapp me-1"></i> WhatsApp
+        </a>
+        {% endif %}
+        <a href="{{ url_for('purchase_new') }}?client_id={{ client.id }}" class="btn btn-primary btn-sm">
+          <i class="fas fa-cart-plus me-1"></i> Nova Compra
+        </a>
+        <a href="{{ url_for('client_edit', cid=client.id) }}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-pen me-1"></i> Editar
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stats do cliente -->
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="stat-card text-center">
+      <div class="stat-value text-primary">{{ purchases|length }}</div>
+      <div class="stat-label">Compras realizadas</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card text-center">
+      <div class="stat-value text-success" style="font-size:1.2rem;">{{ total_spent|currency }}</div>
+      <div class="stat-label">Total gasto</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card text-center">
+      <div class="stat-value" style="font-size:1.1rem;">
+        {% if purchases %}{{ purchases[0].purchase_date|fmt_date }}{% else %}—{% endif %}
+      </div>
+      <div class="stat-label">Última compra</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card text-center">
+      <div class="stat-value" style="font-size:1.1rem;">
+        {{ client.last_contact|fmt_date }}
+      </div>
+      <div class="stat-label">Último contato CRM</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <!-- Informações de contato -->
+    <div class="card mb-3">
+      <div class="card-header"><i class="fas fa-address-card me-2 text-primary"></i>Informações de Contato</div>
+      <div class="card-body">
+        <dl class="row mb-0 small">
+          <dt class="col-4 text-muted">Telefone</dt>
+          <dd class="col-8">{{ client.phone or '—' }}</dd>
+
+          <dt class="col-4 text-muted">WhatsApp</dt>
+          <dd class="col-8">
+            {% if client.whatsapp %}
+            <a href="{{ client.whatsapp|wa_url }}" target="_blank" class="text-success text-decoration-none">
+              <i class="fab fa-whatsapp"></i> {{ client.whatsapp }}
+            </a>
+            {% else %}—{% endif %}
+          </dd>
+
+          <dt class="col-4 text-muted">Instagram</dt>
+          <dd class="col-8">
+            {% if client.instagram %}
+            <a href="https://instagram.com/{{ client.instagram|replace('@','') }}" target="_blank"
+               class="text-decoration-none text-danger">
+              <i class="fab fa-instagram"></i> {{ client.instagram }}
+            </a>
+            {% else %}—{% endif %}
+          </dd>
+
+          <dt class="col-4 text-muted">Facebook</dt>
+          <dd class="col-8">
+            {% if client.facebook %}
+            <span style="color:#1877f2"><i class="fab fa-facebook"></i></span> {{ client.facebook }}
+            {% else %}—{% endif %}
+          </dd>
+        </dl>
+      </div>
+    </div>
+
+    <!-- Observações -->
+    {% if client.notes %}
+    <div class="card mb-3">
+      <div class="card-header"><i class="fas fa-sticky-note me-2 text-warning"></i>Observações</div>
+      <div class="card-body">
+        <p class="mb-0 small" style="white-space:pre-wrap;">{{ client.notes }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Histórico de contato CRM -->
+    <div class="card">
+      <div class="card-header d-flex align-items-center">
+        <i class="fas fa-comments me-2 text-info"></i>Histórico de Contatos
+        <a href="{{ url_for('crm_index') }}" class="btn btn-sm btn-outline-info ms-auto">CRM</a>
+      </div>
+      <div class="card-body p-0">
+        {% if contacts %}
+        <ul class="list-group list-group-flush">
+          {% for c in contacts %}
+          <li class="list-group-item py-2">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <small class="fw-semibold">{{ c.template_name|replace('_',' ')|title if c.template_name else 'Contato manual' }}</small>
+                {% if c.message %}
+                <p class="mb-0 text-muted" style="font-size:.78rem;white-space:pre-wrap;max-height:60px;overflow:hidden;">{{ c.message[:120] }}{% if c.message|length > 120 %}…{% endif %}</p>
+                {% endif %}
+              </div>
+              <small class="text-muted ms-2" style="font-size:.73rem;white-space:nowrap;">{{ c.contact_date|fmt_datetime }}</small>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center py-3 text-muted small">Nenhum contato registrado ainda.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <!-- Histórico de compras -->
+    <div class="card">
+      <div class="card-header d-flex align-items-center">
+        <i class="fas fa-shopping-bag me-2 text-success"></i>Histórico de Compras
+        <a href="{{ url_for('purchase_new') }}?client_id={{ client.id }}" class="btn btn-sm btn-success ms-auto">
+          <i class="fas fa-plus me-1"></i> Nova Compra
+        </a>
+      </div>
+      <div class="card-body p-0">
+        {% if purchases %}
+        <div class="accordion" id="purchaseAccordion">
+          {% for p in purchases %}
+          {% set items = purchase_items_map.get(p.id, []) %}
+          <div class="accordion-item border-0 border-bottom">
+            <div class="accordion-header">
+              <button class="accordion-button collapsed py-2 px-3" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#pu{{ p.id }}">
+                <div class="d-flex w-100 align-items-center gap-3">
+                  <small class="text-muted" style="min-width:80px;">{{ p.purchase_date|fmt_date }}</small>
+                  {% if p.sale_code %}
+                  <span class="code-badge-sale flex-shrink-0">{{ p.sale_code }}</span>
+                  {% endif %}
+                  <span class="fw-semibold flex-grow-1">
+                    {% if items|length == 1 %}
+                      {{ items[0].product_name }}
+                    {% elif items|length > 1 %}
+                      {{ items[0].product_name }}
+                      <span class="badge bg-secondary bg-opacity-15 text-secondary ms-1">+{{ items|length - 1 }} item{% if items|length > 2 %}s{% endif %}</span>
+                    {% else %}
+                      {{ p.product_name }}
+                    {% endif %}
+                  </span>
+                  <span class="text-success fw-bold ms-auto">{{ p.value|currency }}</span>
+                  <form method="post" action="{{ url_for('purchase_delete', pid=p.id) }}"
+                        onsubmit="return confirm('Remover esta compra?')" class="ms-2">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation()">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </button>
+            </div>
+            <div id="pu{{ p.id }}" class="accordion-collapse collapse">
+              <div class="accordion-body py-2 px-3 bg-light">
+                {% if items %}
+                <table class="table table-sm mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>SKU</th>
+                      <th>Produto</th>
+                      <th class="text-center">Qtd</th>
+                      <th class="text-end">Valor Unit.</th>
+                      <th class="text-end">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for item in items %}
+                    <tr>
+                      <td class="text-muted font-monospace small">{{ item.product_sku or '—' }}</td>
+                      <td>{{ item.product_name }}</td>
+                      <td class="text-center">{{ item.quantity|int if item.quantity == item.quantity|int else item.quantity }}</td>
+                      <td class="text-end">{{ item.unit_price|currency }}</td>
+                      <td class="text-end fw-semibold text-success">{{ item.subtotal|currency }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                  <tfoot class="table-light">
+                    <tr>
+                      <td colspan="4" class="text-end fw-bold">Total da compra:</td>
+                      <td class="text-end fw-bold text-success">{{ p.value|currency }}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+                {% if p.notes %}
+                <div class="mt-1"><small class="text-muted"><i class="fas fa-note-sticky me-1"></i>{{ p.notes }}</small></div>
+                {% endif %}
+                {% else %}
+                <small class="text-muted">{{ p.product_name }}</small>
+                {% if p.notes %}<br><small class="text-muted">{{ p.notes }}</small>{% endif %}
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="px-3 py-2 text-end border-top">
+          <strong class="text-success">Total gasto: {{ total_spent|currency }}</strong>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="fas fa-shopping-cart fa-2x mb-2 d-block opacity-25"></i>
+          <p class="mb-2">Nenhuma compra registrada ainda.</p>
+          <a href="{{ url_for('purchase_new') }}?client_id={{ client.id }}" class="btn btn-success btn-sm">
+            <i class="fas fa-plus me-1"></i> Registrar Primeira Compra
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Registrar compra -->
+    <div class="card mt-3">
+      <div class="card-header d-flex align-items-center">
+        <i class="fas fa-bolt me-2 text-warning"></i>Registrar Compra
+        <a href="{{ url_for('purchase_new') }}?client_id={{ client.id }}" class="btn btn-sm btn-outline-primary ms-auto">
+          <i class="fas fa-expand me-1"></i> Tela cheia
+        </a>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('purchase_new') }}" id="quick-form" novalidate>
+          <input type="hidden" name="client_id" value="{{ client.id }}">
+          <input type="hidden" name="next" value="client">
+          <input type="hidden" name="items_json" id="quick_items_json">
+
+          <!-- Cabeçalho das colunas -->
+          <div class="row g-2 mb-1 d-none d-md-flex px-1">
+            <div class="col-md-5"><small class="text-muted fw-semibold">Produto</small></div>
+            <div class="col-md-2"><small class="text-muted fw-semibold">Qtd</small></div>
+            <div class="col-md-2"><small class="text-muted fw-semibold">Valor Unit. (R$)</small></div>
+            <div class="col-md-2"><small class="text-muted fw-semibold">Subtotal</small></div>
+            <div class="col-md-1"></div>
+          </div>
+
+          <div id="quick-items-container"></div>
+
+          <div class="mt-2 mb-3 d-flex align-items-center gap-3">
+            <button type="button" id="quick-add-btn" class="btn btn-outline-secondary btn-sm">
+              <i class="fas fa-plus me-1"></i> Adicionar outro produto
+            </button>
+            <div class="ms-auto fw-bold">
+              Total: <span id="quick-total-display" class="text-success">R$ 0,00</span>
+            </div>
+          </div>
+
+          <div class="row g-2 align-items-end">
+            <div class="col-sm-5">
+              <label class="form-label small fw-semibold">Data da Venda</label>
+              <input type="date" name="purchase_date" class="form-control form-control-sm" value="{{ today }}" required>
+            </div>
+            <div class="col-sm-5">
+              <label class="form-label small fw-semibold">Observações</label>
+              <input type="text" name="notes" class="form-control form-control-sm" placeholder="Desconto, condição especial...">
+            </div>
+            <div class="col-sm-2 d-flex align-items-end">
+              <button type="submit" class="btn btn-success btn-sm w-100">
+                <i class="fas fa-check me-1"></i> Registrar
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+.item-row { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
+.ac-wrap { position: relative; }
+.ac-dropdown {
+  position: absolute; top: 100%; left: 0; z-index: 1050;
+  background: #fff; border: 1px solid #ced4da; border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.12); min-width: 420px; max-height: 220px;
+  overflow-y: auto; display: none;
+}
+.ac-dropdown table { margin: 0; font-size: .85rem; }
+.ac-dropdown thead th { position: sticky; top: 0; background: #f8f9fa; padding: 4px 8px; white-space: nowrap; }
+.ac-dropdown tbody tr { cursor: pointer; }
+.ac-dropdown tbody tr:hover, .ac-dropdown tbody tr.ac-active { background: #e8f4fd; }
+.ac-dropdown tbody td { padding: 5px 8px; }
+.ac-sku { color: #6c757d; font-family: monospace; white-space: nowrap; }
+.ac-price { text-align: right; white-space: nowrap; color: #198754; }
+</style>
+<script>
+// ---------- Autocomplete (reutilizado por todas as linhas) ----------
+function makeAutocomplete(inputEl, onSelect) {
+  const wrap = inputEl.closest('.ac-wrap');
+  const drop = wrap.querySelector('.ac-dropdown');
+  const tbody = drop.querySelector('tbody');
+  let results = [], selIdx = -1, timer = null;
+
+  function fmt(price) { return price > 0 ? 'R$ ' + price.toFixed(2).replace('.', ',') : '—'; }
+
+  function render(items) {
+    results = items; selIdx = -1;
+    tbody.innerHTML = '';
+    if (!items.length) { drop.style.display = 'none'; return; }
+    items.forEach((p, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="ac-sku">${p.sku || '—'}</td><td>${p.name}</td><td class="ac-price">${fmt(p.price)}</td>`;
+      tr.addEventListener('mousedown', e => { e.preventDefault(); pick(p); });
+      tr.addEventListener('mouseover', () => highlight(i));
+      tbody.appendChild(tr);
+    });
+    drop.style.display = '';
+  }
+
+  function highlight(i) {
+    tbody.querySelectorAll('tr').forEach(r => r.classList.remove('ac-active'));
+    tbody.querySelectorAll('tr')[i]?.classList.add('ac-active'); selIdx = i;
+  }
+
+  function pick(p) { inputEl.value = p.name; drop.style.display = 'none'; onSelect(p); }
+
+  function search() {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      fetch('/api/products/search?q=' + encodeURIComponent(inputEl.value.trim()))
+        .then(r => r.json()).then(render).catch(() => {});
+    }, 180);
+  }
+
+  inputEl.addEventListener('input', search);
+  inputEl.addEventListener('focus', search);
+  inputEl.addEventListener('blur', () => setTimeout(() => { drop.style.display = 'none'; }, 200));
+  inputEl.addEventListener('keydown', e => {
+    if (drop.style.display === 'none') return;
+    const rows = tbody.querySelectorAll('tr');
+    if (e.key === 'ArrowDown') { e.preventDefault(); highlight(Math.min(selIdx + 1, rows.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); highlight(Math.max(selIdx - 1, 0)); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (selIdx >= 0 && results[selIdx]) pick(results[selIdx]); }
+    else if (e.key === 'Escape') drop.style.display = 'none';
+  });
+}
+
+// ---------- Formulário de compra rápida — múltiplos itens ----------
+let quickRowCount = 0;
+
+function fmtBRL(v) {
+  if (!v || isNaN(v)) return 'R$ 0,00';
+  return 'R$ ' + parseFloat(v).toFixed(2).replace('.', ',');
+}
+
+function quickUpdateTotals() {
+  let total = 0;
+  document.querySelectorAll('#quick-items-container .item-row').forEach(row => {
+    const qty = parseFloat(row.querySelector('.qty-input').value || 0);
+    const unit = parseFloat(row.querySelector('.unit-input').value || 0);
+    const sub = qty * unit;
+    row.querySelector('.sub-display').value = sub > 0 ? sub.toFixed(2) : '';
+    row.querySelector('.sub-label').textContent = sub > 0 ? fmtBRL(sub) : '—';
+    total += sub;
+  });
+  document.getElementById('quick-total-display').textContent = fmtBRL(total);
+}
+
+function quickAddRow() {
+  const idx = quickRowCount++;
+  const container = document.getElementById('quick-items-container');
+  const div = document.createElement('div');
+  div.className = 'item-row';
+  div.dataset.idx = idx;
+  div.innerHTML = `
+    <div class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <label class="form-label small fw-semibold d-md-none">Produto</label>
+        <div class="ac-wrap">
+          <input type="text" class="form-control form-control-sm product-text"
+                 placeholder="Buscar por SKU ou nome..." autocomplete="off">
+          <div class="ac-dropdown">
+            <table class="table table-sm table-hover mb-0">
+              <thead><tr><th style="width:70px">SKU</th><th>Nome</th><th style="width:85px">Preço</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <input type="hidden" class="product-id-h">
+          <input type="hidden" class="product-name-h">
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-semibold d-md-none">Qtd</label>
+        <input type="number" class="form-control form-control-sm qty-input" min="0.01" step="0.01" value="1" placeholder="1">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-semibold d-md-none">Valor Unit. (R$)</label>
+        <input type="number" class="form-control form-control-sm unit-input" min="0" step="0.01" placeholder="0,00">
+      </div>
+      <div class="col-8 col-md-2">
+        <label class="form-label small fw-semibold d-md-none">Subtotal</label>
+        <div class="input-group input-group-sm">
+          <input type="number" class="form-control sub-display" readonly placeholder="0,00" tabindex="-1">
+        </div>
+        <small class="text-success fw-semibold sub-label d-none d-md-block">—</small>
+      </div>
+      <div class="col-4 col-md-1 d-flex align-items-end justify-content-end">
+        <button type="button" class="btn btn-sm btn-outline-danger remove-btn" title="Remover">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>`;
+
+  container.appendChild(div);
+
+  const textInput = div.querySelector('.product-text');
+  const pidH = div.querySelector('.product-id-h');
+  const pnameH = div.querySelector('.product-name-h');
+  const unitInput = div.querySelector('.unit-input');
+  const qtyInput = div.querySelector('.qty-input');
+
+  makeAutocomplete(textInput, product => {
+    pidH.value = product.id;
+    pnameH.value = product.name;
+    unitInput.value = product.price > 0 ? product.price.toFixed(2) : unitInput.value;
+    quickUpdateTotals();
+    qtyInput.focus();
+  });
+
+  textInput.addEventListener('input', () => { pnameH.value = textInput.value; pidH.value = ''; });
+  qtyInput.addEventListener('input', quickUpdateTotals);
+  unitInput.addEventListener('input', quickUpdateTotals);
+
+  div.querySelector('.remove-btn').addEventListener('click', () => {
+    if (document.querySelectorAll('#quick-items-container .item-row').length > 1) {
+      div.remove(); quickUpdateTotals();
+    } else {
+      textInput.value = ''; pidH.value = ''; pnameH.value = '';
+      unitInput.value = ''; qtyInput.value = 1; quickUpdateTotals();
+    }
+  });
+
+  if (idx > 0) textInput.focus();
+}
+
+document.getElementById('quick-add-btn').addEventListener('click', quickAddRow);
+
+document.getElementById('quick-form').addEventListener('submit', function(e) {
+  const items = [];
+  let valid = true;
+  document.querySelectorAll('#quick-items-container .item-row').forEach(row => {
+    const name = row.querySelector('.product-name-h').value.trim()
+                 || row.querySelector('.product-text').value.trim();
+    const pid = row.querySelector('.product-id-h').value || null;
+    const qty = parseFloat(row.querySelector('.qty-input').value || 1);
+    const unit = parseFloat(row.querySelector('.unit-input').value || 0);
+    const sub = parseFloat(row.querySelector('.sub-display').value || 0) || qty * unit;
+    if (name) items.push({ product_id: pid ? parseInt(pid) : null, product_name: name, quantity: qty, unit_price: unit, subtotal: sub });
+    else valid = false;
+  });
+  if (!items.length || !valid) {
+    e.preventDefault();
+    alert('Preencha o produto de todos os itens adicionados.');
+    return;
+  }
+  document.getElementById('quick_items_json').value = JSON.stringify(items);
+});
+
+quickAddRow();
+</script>
+{% endblock %}

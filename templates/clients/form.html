@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% set is_edit = client is not none %}
+{% block title %}{{ 'Editar' if is_edit else 'Novo' }} Cliente — CRM{% endblock %}
+{% block page_title %}{{ 'Editar Cliente' if is_edit else 'Novo Cliente' }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="fas fa-user{{ '-edit' if is_edit else '-plus' }} text-primary"></i>
+        {{ 'Editar dados do cliente' if is_edit else 'Cadastrar novo cliente' }}
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate>
+
+          {% if is_edit and client.client_code %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-muted small">ID do Cliente</label>
+            <div>
+              <span class="code-badge fs-6">{{ client.client_code }}</span>
+              <small class="text-muted ms-2">Identificador único gerado automaticamente</small>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nome <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control" required autofocus
+                   value="{{ client.name if is_edit else '' }}" placeholder="Nome completo do cliente">
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Telefone</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-phone text-muted"></i></span>
+                <input type="text" name="phone" class="form-control" id="phoneInput"
+                       value="{{ client.phone if is_edit else '' }}" placeholder="(11) 99999-9999">
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">WhatsApp</label>
+              <div class="input-group">
+                <span class="input-group-text text-success"><i class="fab fa-whatsapp"></i></span>
+                <input type="text" name="whatsapp" class="form-control" id="whatsappInput"
+                       value="{{ client.whatsapp if is_edit else '' }}" placeholder="(11) 99999-9999">
+              </div>
+              <div class="form-check mt-1">
+                <input class="form-check-input" type="checkbox" id="samePhone">
+                <label class="form-check-label small text-muted" for="samePhone">Igual ao telefone</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Instagram</label>
+              <div class="input-group">
+                <span class="input-group-text text-danger"><i class="fab fa-instagram"></i></span>
+                <input type="text" name="instagram" class="form-control"
+                       value="{{ client.instagram if is_edit else '' }}" placeholder="@usuario">
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Facebook</label>
+              <div class="input-group">
+                <span class="input-group-text" style="color:#1877f2"><i class="fab fa-facebook"></i></span>
+                <input type="text" name="facebook" class="form-control"
+                       value="{{ client.facebook if is_edit else '' }}" placeholder="Nome ou link">
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Tipo de Cliente</label>
+            <div class="d-flex gap-3">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="type" id="typePotential" value="potential"
+                       {% if not is_edit or client.type == 'potential' %}checked{% endif %}>
+                <label class="form-check-label" for="typePotential">
+                  <span class="badge badge-potential">Em Potencial</span>
+                  <small class="text-muted d-block">Ainda não realizou compra</small>
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="type" id="typeActive" value="active"
+                       {% if is_edit and client.type == 'active' %}checked{% endif %}>
+                <label class="form-check-label" for="typeActive">
+                  <span class="badge badge-active">Ativo</span>
+                  <small class="text-muted d-block">Já realizou compra</small>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Observações</label>
+            <textarea name="notes" class="form-control" rows="3"
+                      placeholder="Anotações sobre o cliente, preferências, histórico...">{{ client.notes if is_edit else '' }}</textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save me-1"></i> {{ 'Salvar Alterações' if is_edit else 'Cadastrar Cliente' }}
+            </button>
+            <a href="{{ url_for('client_detail', cid=client.id) if is_edit else url_for('clients_list') }}"
+               class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {% if is_edit %}
+    <div class="mt-3 d-flex justify-content-end">
+      <button class="btn btn-outline-danger btn-sm" onclick="confirmDelete()">
+        <i class="fas fa-trash me-1"></i> Excluir este cliente
+      </button>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if is_edit %}
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-danger">Confirmar exclusão</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">Excluir <strong>{{ client.name }}</strong>? Todas as compras e histórico serão removidos.</div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <form action="{{ url_for('client_delete', cid=client.id) }}" method="post">
+          <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('samePhone').addEventListener('change', function() {
+  if (this.checked) {
+    document.getElementById('whatsappInput').value = document.getElementById('phoneInput').value;
+  }
+});
+document.getElementById('phoneInput').addEventListener('input', function() {
+  if (document.getElementById('samePhone').checked) {
+    document.getElementById('whatsappInput').value = this.value;
+  }
+});
+{% if is_edit %}
+function confirmDelete() {
+  new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+{% endif %}
+</script>
+{% endblock %}

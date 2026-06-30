@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}CRM{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root { --sidebar-width: 250px; --sidebar-bg: #1e293b; --sidebar-accent: #3b82f6; }
+    body { background: #f1f5f9; font-family: 'Segoe UI', sans-serif; }
+
+    .wrapper { display: flex; min-height: 100vh; }
+
+    #sidebar {
+      width: var(--sidebar-width); min-width: var(--sidebar-width);
+      background: var(--sidebar-bg); color: #94a3b8;
+      display: flex; flex-direction: column; transition: all .25s ease;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    #sidebar.collapsed { min-width: 0; width: 0; overflow: hidden; }
+
+    .sidebar-brand {
+      padding: 1.25rem 1rem; display: flex; align-items: center; gap: .6rem;
+      color: #fff; font-size: 1.15rem; font-weight: 700;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .sidebar-brand .brand-icon {
+      background: var(--sidebar-accent); color: #fff;
+      width: 36px; height: 36px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: .9rem;
+    }
+
+    .sidebar-section { padding: .5rem 0; }
+    .sidebar-label {
+      font-size: .65rem; text-transform: uppercase; letter-spacing: .08em;
+      color: #64748b; padding: .75rem 1rem .25rem; font-weight: 600;
+    }
+    .sidebar-link {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .55rem 1rem; color: #94a3b8; text-decoration: none;
+      border-radius: 6px; margin: 1px 8px; transition: all .15s;
+      font-size: .9rem;
+    }
+    .sidebar-link:hover { background: rgba(255,255,255,.07); color: #e2e8f0; }
+    .sidebar-link.active { background: var(--sidebar-accent); color: #fff; }
+    .sidebar-link .fa-fw { width: 18px; text-align: center; }
+
+    #content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+    .topbar {
+      background: #fff; border-bottom: 1px solid #e2e8f0;
+      padding: .65rem 1.5rem; display: flex; align-items: center; gap: .75rem;
+      position: sticky; top: 0; z-index: 100; flex-wrap: wrap;
+    }
+    .topbar-title { font-size: 1.05rem; font-weight: 600; color: #1e293b; white-space: nowrap; }
+
+    /* Global search bar */
+    .global-search-form { flex: 1; min-width: 160px; max-width: 320px; }
+    .global-search-form .input-group { border-radius: 20px; overflow: hidden; }
+    .global-search-form .form-control {
+      border-radius: 20px 0 0 20px; border-right: 0;
+      font-size: .85rem; padding: .3rem .85rem;
+      border-color: #e2e8f0; background: #f8fafc;
+    }
+    .global-search-form .form-control:focus {
+      background: #fff; border-color: var(--sidebar-accent);
+      box-shadow: 0 0 0 2px rgba(59,130,246,.15);
+    }
+    .global-search-form .btn {
+      border-radius: 0 20px 20px 0; border-left: 0;
+      border-color: #e2e8f0; background: #f8fafc;
+      padding: .3rem .7rem; color: #64748b;
+    }
+    .global-search-form .btn:hover { background: #e2e8f0; color: #1e293b; }
+
+    .page-body { padding: 1.5rem; }
+
+    .stat-card {
+      background: #fff; border-radius: 12px; padding: 1.25rem 1.5rem;
+      border: 1px solid #e2e8f0; transition: box-shadow .2s;
+    }
+    .stat-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+    .stat-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+    }
+    .stat-value { font-size: 1.65rem; font-weight: 700; color: #1e293b; line-height: 1.1; }
+    .stat-label { font-size: .82rem; color: #64748b; margin-top: .15rem; }
+
+    .card { border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: none; }
+    .card-header {
+      background: #fff; border-bottom: 1px solid #f1f5f9;
+      padding: 1rem 1.25rem; font-weight: 600; color: #1e293b;
+    }
+    .table th { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: #64748b; border-color: #f1f5f9; }
+    .table td { vertical-align: middle; color: #334155; font-size: .9rem; border-color: #f8fafc; }
+    .table-hover tbody tr:hover { background: #f8fafc; }
+
+    .badge { font-weight: 500; font-size: .73rem; }
+    .badge-active { background: #dcfce7; color: #166534; }
+    .badge-potential { background: #fef9c3; color: #854d0e; }
+
+    .btn-action { padding: .25rem .5rem; font-size: .8rem; }
+
+    .rank-num {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: #f1f5f9; color: #64748b;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: .75rem; font-weight: 700;
+    }
+    .rank-num.gold { background: #fef08a; color: #92400e; }
+    .rank-num.silver { background: #e2e8f0; color: #475569; }
+    .rank-num.bronze { background: #fed7aa; color: #9a3412; }
+
+    .whatsapp-btn { background: #25d366; border-color: #25d366; color: #fff; }
+    .whatsapp-btn:hover { background: #1ebe5d; color: #fff; }
+
+    .code-badge {
+      font-family: monospace; font-size: .75rem; font-weight: 600;
+      background: #e0e7ff; color: #3730a3; border-radius: 4px;
+      padding: .1rem .4rem; letter-spacing: .03em;
+    }
+    .code-badge-sale {
+      font-family: monospace; font-size: .75rem; font-weight: 600;
+      background: #d1fae5; color: #065f46; border-radius: 4px;
+      padding: .1rem .4rem; letter-spacing: .03em;
+    }
+
+    @media (max-width: 768px) {
+      #sidebar { position: fixed; z-index: 1040; height: 100%; }
+      #sidebar:not(.show) { transform: translateX(-100%); }
+      .topbar { padding: .65rem 1rem; }
+      .page-body { padding: 1rem; }
+      .global-search-form { max-width: 100%; order: 5; flex-basis: 100%; }
+    }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><i class="fas fa-chart-line"></i></div>
+      <span>CRM</span>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Principal</div>
+      <a href="{{ url_for('dashboard') }}" class="sidebar-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+        <i class="fas fa-home fa-fw"></i> Dashboard
+      </a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Cadastros</div>
+      <a href="{{ url_for('clients_list') }}" class="sidebar-link {% if 'client' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-users fa-fw"></i> Clientes
+      </a>
+      <a href="{{ url_for('products_list') }}" class="sidebar-link {% if 'product' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-box fa-fw"></i> Produtos
+      </a>
+      <a href="{{ url_for('purchase_new') }}" class="sidebar-link {% if 'purchase' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-shopping-cart fa-fw"></i> Nova Compra
+      </a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Ferramentas</div>
+      <a href="{{ url_for('crm_index') }}" class="sidebar-link {% if 'crm' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-comments fa-fw"></i> CRM / WhatsApp
+        {% if nav_potential_count > 0 %}
+        <span class="badge bg-warning text-dark ms-auto">{{ nav_potential_count }}</span>
+        {% endif %}
+      </a>
+      <a href="{{ url_for('import_clients') }}" class="sidebar-link {% if request.endpoint == 'import_clients' %}active{% endif %}">
+        <i class="fas fa-users fa-fw"></i><span style="font-size:.85em;"> Importar Clientes</span>
+      </a>
+      <a href="{{ url_for('import_products') }}" class="sidebar-link {% if request.endpoint in ('import_products','import_products_template') %}active{% endif %}">
+        <i class="fas fa-box fa-fw"></i><span style="font-size:.85em;"> Importar Produtos</span>
+      </a>
+      <a href="{{ url_for('import_sales') }}" class="sidebar-link {% if request.endpoint in ('import_sales','import_sales_template') %}active{% endif %}">
+        <i class="fas fa-file-invoice-dollar fa-fw"></i><span style="font-size:.85em;"> Importar Vendas</span>
+      </a>
+    </div>
+    <div class="mt-auto p-3" style="border-top:1px solid rgba(255,255,255,.08)">
+      <small class="text-muted" style="font-size:.72rem;">CRM v1.1 &mdash; SQLite + Flask</small>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <div id="content">
+    <div class="topbar">
+      <button class="btn btn-sm btn-outline-secondary" id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+      </button>
+      <span class="topbar-title d-none d-sm-inline">{% block page_title %}{% endblock %}</span>
+
+      <!-- Busca global -->
+      <form action="{{ url_for('global_search') }}" method="get" class="global-search-form">
+        <div class="input-group input-group-sm">
+          <input type="text" name="q" class="form-control"
+                 placeholder="CLI-0001, VND-0001 ou SKU..."
+                 value="{{ request.args.get('q', '') }}"
+                 autocomplete="off">
+          <button type="submit" class="btn btn-outline-secondary" title="Buscar">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+      </form>
+
+      <div class="ms-auto d-flex gap-2 flex-shrink-0">
+        <a href="{{ url_for('client_new') }}" class="btn btn-sm btn-primary">
+          <i class="fas fa-user-plus me-1"></i><span class="d-none d-md-inline">Novo Cliente</span>
+        </a>
+        <a href="{{ url_for('purchase_new') }}" class="btn btn-sm btn-success">
+          <i class="fas fa-plus me-1"></i><span class="d-none d-md-inline">Nova Compra</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm mb-3" role="alert">
+          <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+      {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.getElementById('sidebarToggle').addEventListener('click', function() {
+    const sidebar = document.getElementById('sidebar');
+    if (window.innerWidth <= 768) {
+      sidebar.classList.toggle('show');
+    } else {
+      sidebar.classList.toggle('collapsed');
+      document.getElementById('content').style.width = '';
+    }
+  });
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

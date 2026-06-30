@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+{% block title %}CRM — Mensagens e Contatos{% endblock %}
+{% block page_title %}CRM — WhatsApp & Contatos{% endblock %}
+
+{% block head %}
+<style>
+  .template-card {
+    cursor: pointer; border: 2px solid #e2e8f0; border-radius: 10px;
+    padding: .75rem 1rem; margin-bottom: .5rem; transition: all .15s;
+    background: #fff;
+  }
+  .template-card:hover { border-color: #25d366; background: #f0fdf4; }
+  .template-card.selected { border-color: #25d366; background: #f0fdf4; }
+  .template-card .template-title { font-weight: 600; font-size: .9rem; }
+  .template-card .template-preview {
+    font-size: .78rem; color: #64748b; margin-top: .25rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .contact-badge-never { background: #fee2e2; color: #991b1b; }
+  .contact-badge-old { background: #fef3c7; color: #92400e; }
+  .contact-badge-recent { background: #dcfce7; color: #166534; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Filtros -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-12 col-md-5">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="fas fa-search"></i></span>
+          <input type="text" name="search" class="form-control" placeholder="Buscar cliente..." value="{{ search }}">
+        </div>
+      </div>
+      <div class="col-auto">
+        <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="" {% if not ctype %}selected{% endif %}>Todos</option>
+          <option value="active" {% if ctype=='active' %}selected{% endif %}>Ativos</option>
+          <option value="potential" {% if ctype=='potential' %}selected{% endif %}>Em Potencial</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Buscar</button>
+        {% if search or ctype %}
+        <a href="{{ url_for('crm_index') }}" class="btn btn-outline-secondary btn-sm ms-1">Limpar</a>
+        {% endif %}
+      </div>
+      <div class="col-auto ms-md-auto">
+        <small class="text-muted">{{ clients|length }} cliente(s) — ordenados por prioridade de contato</small>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    {% if clients %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Tipo</th>
+            <th>Contato</th>
+            <th>Instagram</th>
+            <th>Compras</th>
+            <th>Último contato</th>
+            <th class="text-center">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in clients %}
+          <tr>
+            <td>
+              <a href="{{ url_for('client_detail', cid=c.id) }}" class="text-decoration-none fw-semibold text-dark">
+                {{ c.name }}
+              </a>
+              {% if c.notes %}
+              <i class="fas fa-sticky-note text-warning ms-1" title="{{ c.notes[:80] }}"></i>
+              {% endif %}
+            </td>
+            <td>
+              {% if c.type == 'active' %}
+              <span class="badge badge-active">Ativo</span>
+              {% else %}
+              <span class="badge badge-potential">Potencial</span>
+              {% endif %}
+            </td>
+            <td>
+              {% set phone = c.whatsapp or c.phone %}
+              {% if phone %}
+              <div class="d-flex align-items-center gap-1">
+                <button class="btn btn-sm whatsapp-btn btn-action"
+                        onclick="openModal({{ c.id }}, '{{ c.name|replace("'","\'") }}', '{{ phone }}')"
+                        title="Enviar mensagem">
+                  <i class="fab fa-whatsapp"></i> WhatsApp
+                </button>
+              </div>
+              {% else %}
+              <small class="text-muted">Sem contato</small>
+              {% endif %}
+            </td>
+            <td>
+              {% if c.instagram %}
+              <a href="https://instagram.com/{{ c.instagram|replace('@','') }}" target="_blank"
+                 class="text-decoration-none text-danger small">
+                <i class="fab fa-instagram"></i> {{ c.instagram }}
+              </a>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if c.buy_count > 0 %}
+              <small>{{ c.buy_count }}x &bull; {{ c.total_spent|currency }}</small>
+              {% else %}
+              <small class="text-muted">Nenhuma</small>
+              {% endif %}
+            </td>
+            <td>
+              {% if c.last_contact is none %}
+              <span class="badge contact-badge-never">Nunca</span>
+              {% elif c.days_since is not none and c.days_since > 30 %}
+              <span class="badge contact-badge-old">{{ c.last_contact|fmt_date }} <small>({{ c.days_since }}d)</small></span>
+              {% else %}
+              <span class="badge contact-badge-recent">{{ c.last_contact|fmt_date }}</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              <div class="d-flex justify-content-center gap-1">
+                <a href="{{ url_for('client_detail', cid=c.id) }}" class="btn btn-sm btn-outline-primary btn-action">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a href="{{ url_for('purchase_new') }}?client_id={{ c.id }}" class="btn btn-sm btn-outline-success btn-action" title="Nova compra">
+                  <i class="fas fa-cart-plus"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="fas fa-comments fa-3x mb-3 d-block opacity-25"></i>
+      <p>Nenhum cliente encontrado.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal WhatsApp -->
+<div class="modal fade" id="whatsappModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
+        <div>
+          <h5 class="modal-title text-success mb-0">
+            <i class="fab fa-whatsapp me-2"></i>
+            Mensagem para <span id="modal_client_name" class="fw-bold"></span>
+          </h5>
+          <small class="text-muted" id="modal_client_phone_display"></small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-5">
+            <p class="fw-semibold small text-muted mb-2 text-uppercase" style="letter-spacing:.05em;">Templates</p>
+            {% for t in templates %}
+            <div class="template-card" data-name="{{ t.name }}" data-message="{{ t.message }}"
+                 onclick="selectTemplate(this)">
+              <div class="template-title">{{ t.title }}</div>
+              <div class="template-preview">{{ t.message[:60] }}...</div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="col-md-7">
+            <p class="fw-semibold small text-muted mb-2 text-uppercase" style="letter-spacing:.05em;">Mensagem</p>
+            <textarea id="messagePreview" class="form-control mb-2" rows="8"
+                      placeholder="Selecione um template ao lado ou escreva a mensagem aqui..."
+                      oninput="syncMessage()"></textarea>
+            <small class="text-muted">
+              <i class="fas fa-info-circle me-1"></i>
+              Use <code>{nome}</code> para inserir o nome do cliente automaticamente.
+            </small>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer d-flex justify-content-between">
+        <form id="contactForm" method="post" action="{{ url_for('crm_contact') }}" class="d-flex gap-2">
+          <input type="hidden" name="client_id" id="modal_client_id">
+          <input type="hidden" name="template_name" id="modal_template_name">
+          <input type="hidden" name="message" id="modal_message">
+          <button type="submit" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-save me-1"></i> Registrar Contato
+          </button>
+        </form>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+          <button type="button" class="btn btn-success btn-sm" onclick="openWhatsApp()" id="openWaBtn">
+            <i class="fab fa-whatsapp me-1"></i> Abrir no WhatsApp
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPhone = '';
+let currentName = '';
+
+function openModal(id, name, phone) {
+  currentPhone = phone;
+  currentName = name;
+  document.getElementById('modal_client_id').value = id;
+  document.getElementById('modal_client_name').textContent = name;
+  document.getElementById('modal_client_phone_display').textContent = phone;
+  document.getElementById('modal_template_name').value = '';
+  document.getElementById('modal_message').value = '';
+  document.getElementById('messagePreview').value = '';
+  document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+  new bootstrap.Modal(document.getElementById('whatsappModal')).show();
+}
+
+function selectTemplate(card) {
+  document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  const msg = card.dataset.message.replace(/\{nome\}/g, currentName);
+  document.getElementById('messagePreview').value = msg;
+  document.getElementById('modal_template_name').value = card.dataset.name;
+  document.getElementById('modal_message').value = msg;
+}
+
+function syncMessage() {
+  document.getElementById('modal_message').value = document.getElementById('messagePreview').value;
+}
+
+function openWhatsApp() {
+  const msg = document.getElementById('messagePreview').value;
+  if (!msg.trim()) {
+    alert('Escreva ou selecione uma mensagem primeiro.');
+    return;
+  }
+  const digits = currentPhone.replace(/\D/g, '');
+  const phone = digits.startsWith('55') ? digits : '55' + digits;
+  if (phone.length < 10) {
+    alert('Número de telefone inválido.');
+    return;
+  }
+  window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
+}
+</script>
+{% endblock %}
